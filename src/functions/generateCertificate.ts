@@ -1,10 +1,10 @@
 import chromium from "chrome-aws-lambda";
 import path from "path";
-import fs, { chown } from "fs";
+import fs from "fs";
 import handlebars from "handlebars";
 import dayjs from "dayjs";
 import { document } from "../utils/dynamodbClient";
-
+import { S3 } from "aws-sdk";
 interface ICreateCertificate {
     id: string;
     name: string;
@@ -75,10 +75,21 @@ export const handle = async (event) => {
     await browser.close();
     // Salvar no S3
 
+    const s3 = new S3();
+
+    await s3.putObject({
+        Bucket: "slscertificateignite",
+        Key: `${id}.pdf`,
+        ACL: "public-read",
+        Body: pdf,
+        ContentType: "application/pdf"
+    }).promise();
+
     return {
         statusCode: 201,
         body: JSON.stringify({
-            message: "Certificate created!"
+            message: "Certificate created!",
+            url: `https://slscertificateignite.s3.sa-east-1.amazonaws.com/${id}.pdf`
         }),
         headers: {
             "Content-Type": "application/json",
