@@ -8,6 +8,22 @@
       "name": "aws",
       "runtime": "nodejs14.x",
       "region": "sa-east-1",
+      "iamRoleStatements": [
+        {
+          "Effect": "Allow",
+          "Action": [
+            "dynamodb:*"
+          ],
+          "Resource": "*"
+        },
+        {
+          "Effect": "Allow",
+          "Action": [
+            "s3:*"
+          ],
+          "Resource": "*"
+        }
+      ],
       "stage": "dev",
       "versionFunctions": true,
       "compiledCloudFormationTemplate": {
@@ -83,10 +99,16 @@
               }
             }
           },
-          "HelloLogGroup": {
+          "GenerateCertificateLogGroup": {
             "Type": "AWS::Logs::LogGroup",
             "Properties": {
-              "LogGroupName": "/aws/lambda/ignitecertificate-dev-hello"
+              "LogGroupName": "/aws/lambda/ignitecertificate-dev-generateCertificate"
+            }
+          },
+          "VerifyCertificateLogGroup": {
+            "Type": "AWS::Logs::LogGroup",
+            "Properties": {
+              "LogGroupName": "/aws/lambda/ignitecertificate-dev-verifyCertificate"
             }
           },
           "IamRoleLambdaExecution": {
@@ -145,6 +167,12 @@
                             "Fn::Sub": "arn:${AWS::Partition}:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/ignitecertificate-dev*:*:*"
                           }
                         ]
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][0]"
+                      },
+                      {
+                        "$ref": "$[\"service\"][\"provider\"][\"iamRoleStatements\"][1]"
                       }
                     ]
                   }
@@ -166,18 +194,18 @@
               }
             }
           },
-          "HelloLambdaFunction": {
+          "GenerateCertificateLambdaFunction": {
             "Type": "AWS::Lambda::Function",
             "Properties": {
               "Code": {
                 "S3Bucket": {
                   "Ref": "ServerlessDeploymentBucket"
                 },
-                "S3Key": "serverless/ignitecertificate/dev/1623116190882-2021-06-08T01:36:30.882Z/ignitecertificate.zip"
+                "S3Key": "serverless/ignitecertificate/dev/1623458180402-2021-06-12T00:36:20.402Z/ignitecertificate.zip"
               },
-              "Handler": "src/functions/hello.handle",
+              "Handler": "src/functions/generateCertificate.handle",
               "Runtime": "nodejs14.x",
-              "FunctionName": "ignitecertificate-dev-hello",
+              "FunctionName": "ignitecertificate-dev-generateCertificate",
               "MemorySize": 1024,
               "Timeout": 6,
               "Role": {
@@ -188,17 +216,52 @@
               }
             },
             "DependsOn": [
-              "HelloLogGroup"
+              "GenerateCertificateLogGroup"
             ]
           },
-          "HelloLambdaVersionpkWpApmuWNsHMF9PgRNnHjohRvXIgurGQEnOr0HcU": {
+          "VerifyCertificateLambdaFunction": {
+            "Type": "AWS::Lambda::Function",
+            "Properties": {
+              "Code": {
+                "S3Bucket": {
+                  "Ref": "ServerlessDeploymentBucket"
+                },
+                "S3Key": "serverless/ignitecertificate/dev/1623458180402-2021-06-12T00:36:20.402Z/ignitecertificate.zip"
+              },
+              "Handler": "src/functions/verifyCertificate.handle",
+              "Runtime": "nodejs14.x",
+              "FunctionName": "ignitecertificate-dev-verifyCertificate",
+              "MemorySize": 1024,
+              "Timeout": 6,
+              "Role": {
+                "Fn::GetAtt": [
+                  "IamRoleLambdaExecution",
+                  "Arn"
+                ]
+              }
+            },
+            "DependsOn": [
+              "VerifyCertificateLogGroup"
+            ]
+          },
+          "VerifyCertificateLambdaVersion7RhzvpdUF0SBl4hNEju5HnFWolTHHLbmNEOYFdRtSY": {
             "Type": "AWS::Lambda::Version",
             "DeletionPolicy": "Retain",
             "Properties": {
               "FunctionName": {
-                "Ref": "HelloLambdaFunction"
+                "Ref": "VerifyCertificateLambdaFunction"
               },
-              "CodeSha256": "Qjfl7dHY00Q/kybBWJweHM9NGrCP0EbLkOKqOMQt4T8="
+              "CodeSha256": "rZAjALmNY1GesE8Ur8RAWQ1t+lrORb2Wj0PNwVlWfGY="
+            }
+          },
+          "GenerateCertificateLambdaVersionmj9YKBjyGkYaZfOXpajkprQ3HTE9Pf4vwZrrwXmek": {
+            "Type": "AWS::Lambda::Version",
+            "DeletionPolicy": "Retain",
+            "Properties": {
+              "FunctionName": {
+                "Ref": "GenerateCertificateLambdaFunction"
+              },
+              "CodeSha256": "rZAjALmNY1GesE8Ur8RAWQ1t+lrORb2Wj0PNwVlWfGY="
             }
           },
           "ApiGatewayRestApi": {
@@ -213,7 +276,7 @@
               "Policy": ""
             }
           },
-          "ApiGatewayResourceHello": {
+          "ApiGatewayResourceGeneratecertificate": {
             "Type": "AWS::ApiGateway::Resource",
             "Properties": {
               "ParentId": {
@@ -222,13 +285,85 @@
                   "RootResourceId"
                 ]
               },
-              "PathPart": "hello",
+              "PathPart": "generateCertificate",
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "ApiGatewayMethodHelloOptions": {
+          "ApiGatewayResourceVerifycertificate": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Fn::GetAtt": [
+                  "ApiGatewayRestApi",
+                  "RootResourceId"
+                ]
+              },
+              "PathPart": "verifyCertificate",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayResourceVerifycertificateIdVar": {
+            "Type": "AWS::ApiGateway::Resource",
+            "Properties": {
+              "ParentId": {
+                "Ref": "ApiGatewayResourceVerifycertificate"
+              },
+              "PathPart": "{id}",
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodGeneratecertificateOptions": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "AuthorizationType": "NONE",
+              "HttpMethod": "OPTIONS",
+              "MethodResponses": [
+                {
+                  "StatusCode": "200",
+                  "ResponseParameters": {
+                    "method.response.header.Access-Control-Allow-Origin": true,
+                    "method.response.header.Access-Control-Allow-Headers": true,
+                    "method.response.header.Access-Control-Allow-Methods": true
+                  },
+                  "ResponseModels": {}
+                }
+              ],
+              "RequestParameters": {},
+              "Integration": {
+                "Type": "MOCK",
+                "RequestTemplates": {
+                  "application/json": "{statusCode:200}"
+                },
+                "ContentHandling": "CONVERT_TO_TEXT",
+                "IntegrationResponses": [
+                  {
+                    "StatusCode": "200",
+                    "ResponseParameters": {
+                      "method.response.header.Access-Control-Allow-Origin": "'*'",
+                      "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'",
+                      "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'"
+                    },
+                    "ResponseTemplates": {
+                      "application/json": "#set($origin = $input.params(\"Origin\"))\n#if($origin == \"\") #set($origin = $input.params(\"origin\")) #end\n#if($origin.matches(\".+\")) #set($context.responseOverride.header.Access-Control-Allow-Origin = $origin) #end"
+                    }
+                  }
+                ]
+              },
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceGeneratecertificate"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              }
+            }
+          },
+          "ApiGatewayMethodVerifycertificateIdVarOptions": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
               "AuthorizationType": "NONE",
@@ -266,20 +401,20 @@
                 ]
               },
               "ResourceId": {
-                "Ref": "ApiGatewayResourceHello"
+                "Ref": "ApiGatewayResourceVerifycertificateIdVar"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
               }
             }
           },
-          "ApiGatewayMethodHelloGet": {
+          "ApiGatewayMethodGeneratecertificatePost": {
             "Type": "AWS::ApiGateway::Method",
             "Properties": {
-              "HttpMethod": "GET",
+              "HttpMethod": "POST",
               "RequestParameters": {},
               "ResourceId": {
-                "Ref": "ApiGatewayResourceHello"
+                "Ref": "ApiGatewayResourceGeneratecertificate"
               },
               "RestApiId": {
                 "Ref": "ApiGatewayRestApi"
@@ -304,7 +439,7 @@
                       ":lambda:path/2015-03-31/functions/",
                       {
                         "Fn::GetAtt": [
-                          "HelloLambdaFunction",
+                          "GenerateCertificateLambdaFunction",
                           "Arn"
                         ]
                       },
@@ -316,7 +451,50 @@
               "MethodResponses": []
             }
           },
-          "ApiGatewayDeployment1623116182724": {
+          "ApiGatewayMethodVerifycertificateIdVarGet": {
+            "Type": "AWS::ApiGateway::Method",
+            "Properties": {
+              "HttpMethod": "GET",
+              "RequestParameters": {},
+              "ResourceId": {
+                "Ref": "ApiGatewayResourceVerifycertificateIdVar"
+              },
+              "RestApiId": {
+                "Ref": "ApiGatewayRestApi"
+              },
+              "ApiKeyRequired": false,
+              "AuthorizationType": "NONE",
+              "Integration": {
+                "IntegrationHttpMethod": "POST",
+                "Type": "AWS_PROXY",
+                "Uri": {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":apigateway:",
+                      {
+                        "Ref": "AWS::Region"
+                      },
+                      ":lambda:path/2015-03-31/functions/",
+                      {
+                        "Fn::GetAtt": [
+                          "VerifyCertificateLambdaFunction",
+                          "Arn"
+                        ]
+                      },
+                      "/invocations"
+                    ]
+                  ]
+                }
+              },
+              "MethodResponses": []
+            }
+          },
+          "ApiGatewayDeployment1623458127933": {
             "Type": "AWS::ApiGateway::Deployment",
             "Properties": {
               "RestApiId": {
@@ -325,16 +503,18 @@
               "StageName": "dev"
             },
             "DependsOn": [
-              "ApiGatewayMethodHelloOptions",
-              "ApiGatewayMethodHelloGet"
+              "ApiGatewayMethodGeneratecertificateOptions",
+              "ApiGatewayMethodVerifycertificateIdVarOptions",
+              "ApiGatewayMethodGeneratecertificatePost",
+              "ApiGatewayMethodVerifycertificateIdVarGet"
             ]
           },
-          "HelloLambdaPermissionApiGateway": {
+          "GenerateCertificateLambdaPermissionApiGateway": {
             "Type": "AWS::Lambda::Permission",
             "Properties": {
               "FunctionName": {
                 "Fn::GetAtt": [
-                  "HelloLambdaFunction",
+                  "GenerateCertificateLambdaFunction",
                   "Arn"
                 ]
               },
@@ -365,6 +545,65 @@
                 ]
               }
             }
+          },
+          "VerifyCertificateLambdaPermissionApiGateway": {
+            "Type": "AWS::Lambda::Permission",
+            "Properties": {
+              "FunctionName": {
+                "Fn::GetAtt": [
+                  "VerifyCertificateLambdaFunction",
+                  "Arn"
+                ]
+              },
+              "Action": "lambda:InvokeFunction",
+              "Principal": "apigateway.amazonaws.com",
+              "SourceArn": {
+                "Fn::Join": [
+                  "",
+                  [
+                    "arn:",
+                    {
+                      "Ref": "AWS::Partition"
+                    },
+                    ":execute-api:",
+                    {
+                      "Ref": "AWS::Region"
+                    },
+                    ":",
+                    {
+                      "Ref": "AWS::AccountId"
+                    },
+                    ":",
+                    {
+                      "Ref": "ApiGatewayRestApi"
+                    },
+                    "/*/*"
+                  ]
+                ]
+              }
+            }
+          },
+          "dbCertificatesUsers": {
+            "Type": "AWS::DynamoDB::Table",
+            "Properties": {
+              "ProvisionedThroughput": {
+                "ReadCapacityUnits": 5,
+                "WriteCapacityUnits": 5
+              },
+              "TableName": "users_certificates",
+              "AttributeDefinitions": [
+                {
+                  "AttributeName": "id",
+                  "AttributeType": "S"
+                }
+              ],
+              "KeySchema": [
+                {
+                  "AttributeName": "id",
+                  "KeyType": "HASH"
+                }
+              ]
+            }
           }
         },
         "Outputs": {
@@ -376,13 +615,22 @@
               "Name": "sls-ignitecertificate-dev-ServerlessDeploymentBucketName"
             }
           },
-          "HelloLambdaFunctionQualifiedArn": {
+          "VerifyCertificateLambdaFunctionQualifiedArn": {
             "Description": "Current Lambda function version",
             "Value": {
-              "Ref": "HelloLambdaVersionpkWpApmuWNsHMF9PgRNnHjohRvXIgurGQEnOr0HcU"
+              "Ref": "VerifyCertificateLambdaVersion7RhzvpdUF0SBl4hNEju5HnFWolTHHLbmNEOYFdRtSY"
             },
             "Export": {
-              "Name": "sls-ignitecertificate-dev-HelloLambdaFunctionQualifiedArn"
+              "Name": "sls-ignitecertificate-dev-VerifyCertificateLambdaFunctionQualifiedArn"
+            }
+          },
+          "GenerateCertificateLambdaFunctionQualifiedArn": {
+            "Description": "Current Lambda function version",
+            "Value": {
+              "Ref": "GenerateCertificateLambdaVersionmj9YKBjyGkYaZfOXpajkprQ3HTE9Pf4vwZrrwXmek"
+            },
+            "Export": {
+              "Name": "sls-ignitecertificate-dev-GenerateCertificateLambdaFunctionQualifiedArn"
             }
           },
           "ServiceEndpoint": {
@@ -501,20 +749,82 @@
       "webpack": {
         "webpackConfig": "./webpack.config.js",
         "includeModules": true
+      },
+      "dynamodb": {
+        "stages": [
+          "dev",
+          "local"
+        ],
+        "start": {
+          "port": 8000,
+          "inMemory": true,
+          "migrate": true
+        }
       }
     },
     "plugins": [
       "serverless-offline",
-      "serverless-webpack"
+      "serverless-webpack",
+      "serverless-dynamodb-local"
     ],
     "pluginsData": {},
     "functions": {
-      "hello": {
-        "handler": "src/functions/hello.handle",
+      "generateCertificate": {
+        "handler": "src/functions/generateCertificate.handle",
         "events": [
           {
             "http": {
-              "path": "hello",
+              "path": "generateCertificate",
+              "method": "post",
+              "cors": {
+                "origins": [
+                  "*"
+                ],
+                "origin": "*",
+                "methods": [
+                  "OPTIONS",
+                  "POST"
+                ],
+                "headers": [
+                  "Content-Type",
+                  "X-Amz-Date",
+                  "Authorization",
+                  "X-Api-Key",
+                  "X-Amz-Security-Token",
+                  "X-Amz-User-Agent"
+                ],
+                "allowCredentials": false
+              },
+              "integration": "AWS_PROXY"
+            }
+          }
+        ],
+        "iamRoleStatements": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:Query",
+              "dynamodb:PutItem"
+            ],
+            "Resource": "arn:aws:dynamodb:${self.provider.region}:*:table/users_certificates"
+          }
+        ],
+        "name": "ignitecertificate-dev-generateCertificate",
+        "package": {
+          "artifact": ".serverless/ignitecertificate.zip"
+        },
+        "memory": 1024,
+        "timeout": 6,
+        "runtime": "nodejs14.x",
+        "vpc": {},
+        "versionLogicalId": "GenerateCertificateLambdaVersionmj9YKBjyGkYaZfOXpajkprQ3HTE9Pf4vwZrrwXmek"
+      },
+      "verifyCertificate": {
+        "handler": "src/functions/verifyCertificate.handle",
+        "events": [
+          {
+            "http": {
+              "path": "verifyCertificate/{id}",
               "method": "get",
               "cors": {
                 "origins": [
@@ -539,7 +849,16 @@
             }
           }
         ],
-        "name": "ignitecertificate-dev-hello",
+        "iamRoleStatements": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "dynamodb:Query"
+            ],
+            "Resource": "arn:aws:dynamodb:${self.provider.region}:*:table/users_certificates"
+          }
+        ],
+        "name": "ignitecertificate-dev-verifyCertificate",
         "package": {
           "artifact": ".serverless/ignitecertificate.zip"
         },
@@ -547,8 +866,35 @@
         "timeout": 6,
         "runtime": "nodejs14.x",
         "vpc": {},
-        "versionLogicalId": "HelloLambdaVersionpkWpApmuWNsHMF9PgRNnHjohRvXIgurGQEnOr0HcU"
+        "versionLogicalId": "VerifyCertificateLambdaVersion7RhzvpdUF0SBl4hNEju5HnFWolTHHLbmNEOYFdRtSY"
       }
+    },
+    "resources": {
+      "Resources": {
+        "dbCertificatesUsers": {
+          "Type": "AWS::DynamoDB::Table",
+          "Properties": {
+            "ProvisionedThroughput": {
+              "ReadCapacityUnits": 5,
+              "WriteCapacityUnits": 5
+            },
+            "TableName": "users_certificates",
+            "AttributeDefinitions": [
+              {
+                "AttributeName": "id",
+                "AttributeType": "S"
+              }
+            ],
+            "KeySchema": [
+              {
+                "AttributeName": "id",
+                "KeyType": "HASH"
+              }
+            ]
+          }
+        }
+      },
+      "Outputs": {}
     },
     "configValidationMode": "warn",
     "serviceFilename": "serverless.yml",
@@ -568,12 +914,15 @@
       },
       "functions": {
         "$ref": "$[\"service\"][\"functions\"]"
+      },
+      "resources": {
+        "$ref": "$[\"service\"][\"resources\"]"
       }
     },
     "isDashboardMonitoringPreconfigured": false
   },
   "package": {
-    "artifactDirectoryName": "serverless/ignitecertificate/dev/1623116190882-2021-06-08T01:36:30.882Z",
+    "artifactDirectoryName": "serverless/ignitecertificate/dev/1623458180402-2021-06-12T00:36:20.402Z",
     "artifact": ""
   }
 }
